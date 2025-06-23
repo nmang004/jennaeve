@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 250 249 246;
+    --foreground: 26 26 26;
+  }
+
+  body {
+    @apply bg-cream text-charcoal;
+    font-feature-settings: "ss01", "ss02", "ss03", "ss04";
+  }
+
+  ::selection {
+    @apply bg-charcoal text-cream;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-br from-charcoal to-muted bg-clip-text text-transparent;
+  }
+
+  .animate-stagger {
+    animation-delay: calc(var(--stagger-delay, 0) * 50ms);
+  }
+}
