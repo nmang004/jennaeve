@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import { ReactNode } from 'react'
 import { easings, springs, staggers } from '@/lib/motion'
+import { useDeviceCapabilities } from '@/lib/hooks'
 
 interface AnimatedTextProps {
   children: ReactNode
@@ -22,19 +23,32 @@ export default function AnimatedText({
   const text = String(children)
   const letters = text.split('')
   const shouldReduceMotion = useReducedMotion()
+  const { canHover, hasTouch, isLowEnd } = useDeviceCapabilities()
+  
+  // Simplify animation on mobile/touch devices
+  const useSimpleAnimation = hasTouch || isLowEnd || shouldReduceMotion
 
-  // Enhanced container with cascading timing
+  // Simplified container for mobile
   const container = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: { 
-        staggerChildren: shouldReduceMotion ? 0 : stagger,
-        delayChildren: shouldReduceMotion ? 0 : delay,
-        // Add slight randomness to feel more organic
+        staggerChildren: useSimpleAnimation ? 0 : stagger,
+        delayChildren: useSimpleAnimation ? 0 : delay,
         when: "beforeChildren"
       },
     },
+  }
+  
+  // Simple mobile variant
+  const simpleVariant = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.3, ease: easings.soft }
+    }
   }
 
   // Multiple character animation variants
@@ -121,7 +135,21 @@ export default function AnimatedText({
     }
   }
 
-  const childVariant = variants[variant]
+  const childVariant = useSimpleAnimation ? simpleVariant : variants[variant]
+
+  // For mobile, show as a simple block without character-by-character animation
+  if (useSimpleAnimation) {
+    return (
+      <motion.span
+        className={`inline-block ${className}`}
+        variants={simpleVariant}
+        initial="hidden"
+        animate="visible"
+      >
+        {text}
+      </motion.span>
+    )
+  }
 
   return (
     <motion.span
@@ -136,19 +164,19 @@ export default function AnimatedText({
           variants={childVariant}
           custom={index} // Pass index for organic variant
           className="inline-block relative"
-          whileHover={shouldReduceMotion ? {} : {
+          whileHover={canHover && !hasTouch ? {
             y: -2,
             scale: 1.05,
             transition: {
               duration: 0.15,
               ease: easings.snap
             }
-          }}
+          } : {}}
         >
           {letter === ' ' ? '\u00A0' : letter}
           
-          {/* Subtle hover glow effect */}
-          {!shouldReduceMotion && variant === 'cinematic' && letter !== ' ' && (
+          {/* Subtle hover glow effect - desktop only */}
+          {canHover && !hasTouch && variant === 'cinematic' && letter !== ' ' && (
             <motion.span
               className="absolute inset-0 opacity-0 blur-sm"
               style={{ color: 'inherit' }}

@@ -29,7 +29,7 @@ export default function HeroSection() {
   return (
     <section 
       ref={heroRef}
-      className="relative h-screen flex items-center justify-center overflow-hidden"
+      className="relative h-screen md:h-screen flex items-center justify-center overflow-hidden px-4"
     >
       {/* Background gradient that shifts with scroll */}
       <motion.div 
@@ -42,7 +42,7 @@ export default function HeroSection() {
       
       <motion.div 
         style={{ y, opacity }}
-        className="text-center z-10 px-6 relative"
+        className="text-center z-10 px-4 md:px-6 relative max-w-4xl mx-auto"
       >
         {/* Cinematic entrance with sophisticated timing */}
         <motion.div
@@ -55,7 +55,7 @@ export default function HeroSection() {
           }}
         >
           <motion.h1 
-            className="text-6xl md:text-8xl font-display mb-6 relative"
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-8xl font-display mb-4 md:mb-6 relative leading-tight"
             initial={{ filter: "blur(8px)" }}
             animate={{ filter: "blur(0px)" }}
             transition={{ 
@@ -68,9 +68,9 @@ export default function HeroSection() {
               Big ideas bloom
             </AnimatedText>
             
-            {/* Subtle glow effect behind text */}
+            {/* Subtle glow effect behind text - hidden on mobile */}
             <motion.div
-              className="absolute inset-0 text-6xl md:text-8xl font-display opacity-20 blur-sm"
+              className="absolute inset-0 text-4xl sm:text-5xl md:text-6xl lg:text-8xl font-display opacity-20 blur-sm hidden md:block"
               initial={{ opacity: 0 }}
               animate={{ opacity: shouldReduceMotion ? 0 : 0.1 }}
               transition={{ delay: 3.5, duration: durations.slow }}
@@ -80,7 +80,7 @@ export default function HeroSection() {
           </motion.h1>
           
           <motion.p 
-            className="text-2xl md:text-3xl text-muted relative"
+            className="text-base sm:text-lg md:text-xl lg:text-2xl xl:text-3xl text-muted relative"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ 

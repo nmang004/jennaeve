@@ -1,10 +1,8 @@
 import type { Metadata } from 'next'
 import { Inter, Space_Grotesk } from 'next/font/google'
 import './globals.css'
-import MouseFollower from '@/components/MouseFollower'
+import ConditionalComponents from '@/components/ConditionalComponents'
 import PageTransitionWrapper from '@/components/PageTransitionWrapper'
-import GenerativeBackground from '@/components/GenerativeBackground'
-import GenerativeAudio from '@/components/GenerativeAudio'
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -29,15 +27,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
       <body className="font-sans antialiased">
-        <GenerativeBackground 
-          colors={['#F5F5F0', '#F0F0E8', '#E8E8E0']}
-          intensity={0.08}
-        />
-        <MouseFollower />
+        <ConditionalComponents />
         <PageTransitionWrapper>
           {children}
         </PageTransitionWrapper>
-        <GenerativeAudio />
       </body>
     </html>
   )

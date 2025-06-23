@@ -3,6 +3,7 @@
 import { motion, useMotionValue, useTransform, useSpring, useReducedMotion } from 'framer-motion'
 import Link from 'next/link'
 import { useRef } from 'react'
+import { useDeviceCapabilities } from '@/lib/hooks'
 import { 
   Package, 
   Palette, 
@@ -43,9 +44,13 @@ export default function ProjectCard({ project, index }: ProjectCardProps) {
   const shouldReduceMotion = useReducedMotion()
   const isPageVisible = usePageVisibility()
   const [cardInViewRef, isCardInView] = useInViewport()
+  const { canHover, hasTouch } = useDeviceCapabilities()
   
   // Only animate when page is visible and card is in viewport
   const shouldAnimateCard = !shouldReduceMotion && isPageVisible && isCardInView
+  
+  // Determine if we should use complex hover effects (desktop only)
+  const useComplexHover = canHover && !hasTouch && !shouldReduceMotion
   
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
@@ -70,7 +75,7 @@ export default function ProjectCard({ project, index }: ProjectCardProps) {
   )
   
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!cardRef.current || shouldReduceMotion) return
+    if (!cardRef.current || !useComplexHover) return
     
     const rect = cardRef.current.getBoundingClientRect()
     const centerX = rect.left + rect.width / 2
@@ -81,9 +86,17 @@ export default function ProjectCard({ project, index }: ProjectCardProps) {
   }
   
   const handleMouseLeave = () => {
-    mouseX.set(0)
-    mouseY.set(0)
+    if (useComplexHover) {
+      mouseX.set(0)
+      mouseY.set(0)
+    }
   }
+
+  // Pre-calculate transform values to avoid conditional hook calls
+  const brightnessTransform = useTransform(brightness, (v) => `brightness(${v})`)
+  const shadowTransform = useTransform([shadowX, shadowY], ([x, y]) => 
+    `${x}px ${y}px 40px rgba(0,0,0,0.1), 0 8px 32px rgba(0,0,0,0.05)`
+  )
 
   return (
     <motion.div
@@ -97,44 +110,48 @@ export default function ProjectCard({ project, index }: ProjectCardProps) {
         delay: index * 0.08, // Slightly tighter stagger
         ease: easings.power,
       }}
-      whileHover={shouldReduceMotion ? {} : {
+      whileHover={useComplexHover ? {
         scale: 1.04,
         y: -8,
         transition: {
           type: "spring",
           ...springs.ui
         }
-      }}
-      style={{ 
+      } : {}}
+      whileTap={hasTouch ? {
+        scale: 0.98,
+        transition: { duration: 0.1 }
+      } : {}}
+      style={useComplexHover ? { 
         rotateX: rotateX,
         rotateY: rotateY,
         transformStyle: "preserve-3d",
-        filter: useTransform(brightness, (v) => `brightness(${v})`)
-      }}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
+        filter: brightnessTransform
+      } : {}}
+      onMouseMove={useComplexHover ? handleMouseMove : undefined}
+      onMouseLeave={useComplexHover ? handleMouseLeave : undefined}
       className="group relative"
     >
       <div ref={cardInViewRef}>
         <Link href={`/project/${project.slug}`}>
           <motion.div 
             className="relative overflow-hidden rounded-2xl bg-white shadow-sm"
-            style={{
+            style={useComplexHover ? {
               ...gpuOptimizations.forTransforms,
-            boxShadow: useTransform([shadowX, shadowY], ([x, y]) => 
-              `${x}px ${y}px 40px rgba(0,0,0,0.1), 0 8px 32px rgba(0,0,0,0.05)`
-            )
-          }}
-          whileHover={{
+              boxShadow: shadowTransform
+            } : {
+              ...gpuOptimizations.forTransforms
+            }}
+          whileHover={useComplexHover ? {
             boxShadow: "0 20px 60px rgba(0,0,0,0.15), 0 8px 32px rgba(0,0,0,0.1)"
-          }}
+          } : {}}
           transition={{ duration: durations.fast, ease: easings.soft }}
         >
           {/* Enhanced background with subtle gradient */}
           <motion.div 
-            className="aspect-[4/3] flex items-center justify-center p-8 relative overflow-hidden"
+            className="aspect-[4/3] flex items-center justify-center p-6 md:p-8 relative overflow-hidden"
             style={{ backgroundColor: project.color + '15' }}
-            whileHover={{ backgroundColor: project.color + '25' }}
+            whileHover={useComplexHover ? { backgroundColor: project.color + '25' } : {}}
             transition={{ duration: durations.fast }}
           >
             {/* Static background pattern - removed continuous animation */}
@@ -147,7 +164,7 @@ export default function ProjectCard({ project, index }: ProjectCardProps) {
             
             {/* Icon with magnetic hover effect */}
             <motion.div
-              whileHover={shouldReduceMotion ? {} : {
+              whileHover={useComplexHover ? {
                 rotate: 8,
                 scale: 1.15,
                 y: -4,
@@ -155,13 +172,17 @@ export default function ProjectCard({ project, index }: ProjectCardProps) {
                   type: "spring",
                   ...springs.bouncy
                 }
-              }}
-              style={{ transformStyle: "preserve-3d" }}
+              } : {}}
+              whileTap={hasTouch ? {
+                scale: 0.95,
+                transition: { duration: 0.1 }
+              } : {}}
+              style={useComplexHover ? { transformStyle: "preserve-3d" } : {}}
             >
               {/* Removed continuous floating animation */}
               <motion.div>
                 <Icon 
-                  className="w-24 h-24 drop-shadow-sm"
+                  className="w-16 sm:w-20 md:w-24 h-16 sm:h-20 md:h-24 drop-shadow-sm"
                   style={{ 
                     color: project.color,
                     filter: `drop-shadow(0 4px 8px ${project.color}40)`
@@ -173,56 +194,60 @@ export default function ProjectCard({ project, index }: ProjectCardProps) {
           
           {/* Enhanced content section */}
           <motion.div 
-            className="p-6 space-y-3 relative"
-            style={{ transform: "translateZ(20px)" }}
+            className="p-4 md:p-6 space-y-2 md:space-y-3 relative"
+            style={useComplexHover ? { transform: "translateZ(20px)" } : {}}
           >
             <motion.p 
-              className="text-sm text-muted uppercase tracking-wider font-medium"
-              whileHover={{ color: project.color }}
+              className="text-xs md:text-sm text-muted uppercase tracking-wider font-medium"
+              whileHover={useComplexHover ? { color: project.color } : {}}
               transition={{ duration: durations.micro }}
             >
               {project.category} • {project.year}
             </motion.p>
             
             <motion.h3 
-              className="text-xl font-display font-medium text-charcoal leading-tight"
-              whileHover={shouldReduceMotion ? {} : {
+              className="text-lg md:text-xl font-display font-medium text-charcoal leading-tight"
+              whileHover={useComplexHover ? {
                 y: -1,
                 transition: { duration: durations.micro, ease: easings.snap }
-              }}
+              } : {}}
             >
               {project.title}
             </motion.h3>
             
             <motion.p 
-              className="text-muted leading-relaxed"
-              whileHover={shouldReduceMotion ? {} : {
+              className="text-sm md:text-base text-muted leading-relaxed"
+              whileHover={useComplexHover ? {
                 opacity: 0.8,
                 transition: { duration: durations.micro }
-              }}
+              } : {}}
             >
               {project.description}
             </motion.p>
           </motion.div>
 
-          {/* Enhanced overlay with gradient */}
-          <motion.div
-            className="absolute inset-0 bg-gradient-to-br opacity-0 pointer-events-none"
-            style={{ 
-              background: `linear-gradient(135deg, ${project.color}08 0%, transparent 70%)` 
-            }}
-            whileHover={{ opacity: shouldReduceMotion ? 0 : 1 }}
-            transition={{ duration: durations.fast, ease: easings.soft }}
-          />
+          {/* Enhanced overlay with gradient - desktop only */}
+          {useComplexHover && (
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-br opacity-0 pointer-events-none"
+              style={{ 
+                background: `linear-gradient(135deg, ${project.color}08 0%, transparent 70%)` 
+              }}
+              whileHover={{ opacity: 1 }}
+              transition={{ duration: durations.fast, ease: easings.soft }}
+            />
+          )}
           
-          {/* Subtle border highlight */}
-          <motion.div
-            className="absolute inset-0 rounded-2xl border-2 border-transparent pointer-events-none"
-            whileHover={{ 
-              borderColor: shouldReduceMotion ? 'transparent' : project.color + '30' 
-            }}
-            transition={{ duration: durations.fast }}
-          />
+          {/* Subtle border highlight - desktop only */}
+          {useComplexHover && (
+            <motion.div
+              className="absolute inset-0 rounded-2xl border-2 border-transparent pointer-events-none"
+              whileHover={{ 
+                borderColor: project.color + '30' 
+              }}
+              transition={{ duration: durations.fast }}
+            />
+          )}
         </motion.div>
         </Link>
       </div>
