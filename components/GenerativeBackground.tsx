@@ -3,6 +3,7 @@
 import { useRef, useMemo } from 'react'
 import { Canvas, useFrame } from '@react-three/fiber'
 import { useReducedMotion } from 'framer-motion'
+import { usePageVisibility } from '@/lib/performance'
 import * as THREE from 'three'
 
 // Vertex shader for the generative background
@@ -147,6 +148,7 @@ interface GenerativeBackgroundProps {
 function BackgroundMesh({ colors, intensity }: { colors: [string, string, string], intensity: number }) {
   const meshRef = useRef<THREE.Mesh>(null)
   const shouldReduceMotion = useReducedMotion()
+  const isPageVisible = usePageVisibility()
   
   const uniforms = useMemo(() => ({
     uTime: { value: 0 },
@@ -161,8 +163,9 @@ function BackgroundMesh({ colors, intensity }: { colors: [string, string, string
   }), [colors, intensity])
 
   useFrame((state) => {
-    if (meshRef.current && !shouldReduceMotion) {
-      uniforms.uTime.value = state.clock.elapsedTime
+    if (meshRef.current && !shouldReduceMotion && isPageVisible) {
+      // Limit update frequency for better performance
+      uniforms.uTime.value = state.clock.elapsedTime * 0.5
     }
   })
 
@@ -186,9 +189,10 @@ export default function GenerativeBackground({
   className = ''
 }: GenerativeBackgroundProps) {
   const shouldReduceMotion = useReducedMotion()
+  const isPageVisible = usePageVisibility()
   
-  if (shouldReduceMotion) {
-    // Fallback to CSS gradient for reduced motion
+  if (shouldReduceMotion || !isPageVisible) {
+    // Fallback to CSS gradient for reduced motion or when page not visible
     return (
       <div 
         className={`fixed inset-0 -z-10 ${className}`}

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { Project } from '@/data/projects'
 import { easings, springs, durations, hoverStates, variants } from '@/lib/motion'
+import { usePageVisibility, useInViewport, gpuOptimizations } from '@/lib/performance'
 
 const iconMap: { [key: string]: any } = {
   'mama-mangos': Coffee,
@@ -40,6 +41,11 @@ export default function ProjectCard({ project, index }: ProjectCardProps) {
   const Icon = iconMap[project.slug] || Package
   const cardRef = useRef<HTMLDivElement>(null)
   const shouldReduceMotion = useReducedMotion()
+  const isPageVisible = usePageVisibility()
+  const [cardInViewRef, isCardInView] = useInViewport()
+  
+  // Only animate when page is visible and card is in viewport
+  const shouldAnimateCard = !shouldReduceMotion && isPageVisible && isCardInView
   
   const mouseX = useMotionValue(0)
   const mouseY = useMotionValue(0)
@@ -109,10 +115,12 @@ export default function ProjectCard({ project, index }: ProjectCardProps) {
       onMouseLeave={handleMouseLeave}
       className="group relative"
     >
-      <Link href={`/project/${project.slug}`}>
-        <motion.div 
-          className="relative overflow-hidden rounded-2xl bg-white shadow-sm"
-          style={{
+      <div ref={cardInViewRef}>
+        <Link href={`/project/${project.slug}`}>
+          <motion.div 
+            className="relative overflow-hidden rounded-2xl bg-white shadow-sm"
+            style={{
+              ...gpuOptimizations.forTransforms,
             boxShadow: useTransform([shadowX, shadowY], ([x, y]) => 
               `${x}px ${y}px 40px rgba(0,0,0,0.1), 0 8px 32px rgba(0,0,0,0.05)`
             )
@@ -129,20 +137,11 @@ export default function ProjectCard({ project, index }: ProjectCardProps) {
             whileHover={{ backgroundColor: project.color + '25' }}
             transition={{ duration: durations.fast }}
           >
-            {/* Animated background pattern */}
+            {/* Static background pattern - removed continuous animation */}
             <motion.div
-              className="absolute inset-0 opacity-30"
+              className="absolute inset-0 opacity-20"
               style={{
-                background: `radial-gradient(circle at 30% 70%, ${project.color}20 0%, transparent 50%)`
-              }}
-              animate={shouldReduceMotion ? {} : {
-                rotate: [0, 360],
-                scale: [1, 1.1, 1]
-              }}
-              transition={{
-                duration: 20,
-                repeat: Infinity,
-                ease: "linear"
+                background: `radial-gradient(circle at 30% 70%, ${project.color}25 0%, transparent 60%)`
               }}
             />
             
@@ -159,18 +158,8 @@ export default function ProjectCard({ project, index }: ProjectCardProps) {
               }}
               style={{ transformStyle: "preserve-3d" }}
             >
-              <motion.div
-                animate={shouldReduceMotion ? {} : {
-                  y: [0, -2, 0],
-                  rotate: [0, 1, 0]
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: easings.fluid,
-                  delay: index * 0.5
-                }}
-              >
+              {/* Removed continuous floating animation */}
+              <motion.div>
                 <Icon 
                   className="w-24 h-24 drop-shadow-sm"
                   style={{ 
@@ -235,7 +224,8 @@ export default function ProjectCard({ project, index }: ProjectCardProps) {
             transition={{ duration: durations.fast }}
           />
         </motion.div>
-      </Link>
+        </Link>
+      </div>
     </motion.div>
   )
 }

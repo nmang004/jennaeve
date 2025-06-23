@@ -4,9 +4,15 @@ import { motion, useReducedMotion } from 'framer-motion'
 import ProjectCard from './ProjectCard'
 import { projects } from '@/data/projects'
 import { containerVariants, easings, durations, staggers } from '@/lib/motion'
+import { usePageVisibility, useInViewport, gpuOptimizations } from '@/lib/performance'
 
 export default function ProjectGrid() {
   const shouldReduceMotion = useReducedMotion()
+  const isPageVisible = usePageVisibility()
+  const [backgroundRef, isBackgroundInView] = useInViewport()
+  
+  // Only animate background elements when in view and page is visible
+  const shouldAnimateBackground = !shouldReduceMotion && isPageVisible && isBackgroundInView
 
   // Advanced orchestration with cascading reveals
   const gridVariants = {
@@ -49,8 +55,9 @@ export default function ProjectGrid() {
 
   return (
     <section className="py-20 px-6 relative overflow-hidden">
-      {/* Subtle animated background */}
+      {/* Simplified background */}
       <motion.div
+        ref={backgroundRef}
         className="absolute inset-0 -z-10"
         variants={backgroundVariants}
         initial="hidden"
@@ -59,33 +66,31 @@ export default function ProjectGrid() {
       >
         <div className="absolute inset-0 bg-gradient-to-br from-cream/50 via-transparent to-cream/30" />
         
-        {/* Floating geometric elements */}
+        {/* Static geometric elements - removed continuous animations */}
         <motion.div
-          className="absolute top-20 left-10 w-32 h-32 bg-charcoal/5 rounded-full blur-xl"
-          animate={shouldReduceMotion ? {} : {
-            y: [0, -20, 0],
-            x: [0, 10, 0],
-            scale: [1, 1.1, 1]
-          }}
+          className="absolute top-20 left-10 w-32 h-32 bg-charcoal/4 rounded-full blur-xl"
+          animate={shouldAnimateBackground ? {
+            y: [0, -10, 0]
+          } : {}}
           transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: easings.fluid
+            duration: 6,
+            repeat: shouldAnimateBackground ? Infinity : 0,
+            ease: easings.fluid,
+            repeatType: "reverse"
           }}
         />
         
         <motion.div
           className="absolute bottom-32 right-20 w-24 h-24 bg-charcoal/3 rounded-full blur-xl"
-          animate={shouldReduceMotion ? {} : {
-            y: [0, 15, 0],
-            x: [0, -15, 0],
-            scale: [1, 0.9, 1]
-          }}
+          animate={shouldAnimateBackground ? {
+            y: [0, 8, 0]
+          } : {}}
           transition={{
-            duration: 12,
-            repeat: Infinity,
+            duration: 8,
+            repeat: shouldAnimateBackground ? Infinity : 0,
             ease: easings.fluid,
-            delay: 4
+            repeatType: "reverse",
+            delay: 3
           }}
         />
       </motion.div>
@@ -132,16 +137,8 @@ export default function ProjectGrid() {
                     }
                   }
                 }}
-                // Add subtle continuous animation
-                animate={shouldReduceMotion ? {} : {
-                  y: [0, -2, 0],
-                }}
-                transition={{
-                  duration: 6 + (index * 0.5),
-                  repeat: Infinity,
-                  ease: easings.fluid,
-                  delay: index * 1.2
-                }}
+                // Removed continuous floating animation for better performance
+                style={gpuOptimizations.forTransforms}
               >
                 <ProjectCard 
                   project={project} 

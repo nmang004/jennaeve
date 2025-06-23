@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react'
 import { motion, useMotionValue, useSpring, useReducedMotion } from 'framer-motion'
 import { springs, easings, durations } from '@/lib/motion'
+import { useThrottledCallback, usePageVisibility } from '@/lib/performance'
 
 export default function MouseFollower() {
   const [isVisible, setIsVisible] = useState(false)
   const [isHovering, setIsHovering] = useState(false)
   const [hoverType, setHoverType] = useState<'default' | 'interactive' | 'text'>('default')
   const shouldReduceMotion = useReducedMotion()
+  const isPageVisible = usePageVisibility()
   
   const cursorX = useMotionValue(0)
   const cursorY = useMotionValue(0)
@@ -21,13 +23,14 @@ export default function MouseFollower() {
   const trailX = useSpring(cursorX, { ...springs.gentle, damping: 20 })
   const trailY = useSpring(cursorY, { ...springs.gentle, damping: 20 })
 
-  useEffect(() => {
-    if (shouldReduceMotion) return
+  // Throttled mouse movement for better performance
+  const throttledMoveCursor = useThrottledCallback((e: MouseEvent) => {
+    cursorX.set(e.clientX - 16)
+    cursorY.set(e.clientY - 16)
+  }, 16) // ~60fps
 
-    const moveCursor = (e: MouseEvent) => {
-      cursorX.set(e.clientX - 16)
-      cursorY.set(e.clientY - 16)
-    }
+  useEffect(() => {
+    if (shouldReduceMotion || !isPageVisible) return
 
     const handleMouseEnter = () => setIsVisible(true)
     const handleMouseLeave = () => setIsVisible(false)
@@ -50,20 +53,20 @@ export default function MouseFollower() {
       }
     }
 
-    window.addEventListener('mousemove', moveCursor)
+    window.addEventListener('mousemove', throttledMoveCursor)
     window.addEventListener('mouseover', handleMouseOver)
     document.addEventListener('mouseenter', handleMouseEnter)
     document.addEventListener('mouseleave', handleMouseLeave)
 
     return () => {
-      window.removeEventListener('mousemove', moveCursor)
+      window.removeEventListener('mousemove', throttledMoveCursor)
       window.removeEventListener('mouseover', handleMouseOver)
       document.removeEventListener('mouseenter', handleMouseEnter)
       document.removeEventListener('mouseleave', handleMouseLeave)
     }
-  }, [cursorX, cursorY, shouldReduceMotion])
+  }, [cursorX, cursorY, shouldReduceMotion, isPageVisible, throttledMoveCursor])
 
-  if (shouldReduceMotion) return null
+  if (shouldReduceMotion || !isPageVisible) return null
 
   return (
     <>
@@ -95,17 +98,17 @@ export default function MouseFollower() {
             ...springs.bouncy
           }}
         >
-          {/* Pulse effect for interactive elements */}
+          {/* Simplified pulse effect for interactive elements */}
           {hoverType === 'interactive' && (
             <motion.div
               className="absolute inset-0 rounded-full bg-white"
               animate={{
-                scale: [1, 1.8, 1],
-                opacity: [0.5, 0, 0.5]
+                scale: [1, 1.4, 1],
+                opacity: [0.3, 0, 0.3]
               }}
               transition={{
-                duration: 1,
-                repeat: Infinity,
+                duration: 1.5,
+                repeat: isPageVisible ? Infinity : 0,
                 ease: easings.fluid
               }}
             />
